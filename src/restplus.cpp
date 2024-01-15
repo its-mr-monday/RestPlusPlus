@@ -86,3 +86,12 @@ HTTPResponse RestPlus::handle_request(HTTPRequest request) {
     return res;
 }
 
+#ifdef __unix__
+void dispach_request(int socket, RestPlus *api) {
+    
+}
+#else
+void dispach_request(SOCKET socket, RestPlus *api) {
+    
+}
+#endif
