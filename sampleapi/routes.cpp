@@ -15,3 +15,10 @@ HTTPResponse current_time(HTTPRequest request) {
     response.body = "{\"time\": \"" + time_str + "\"}";
     return response;
 }
+
+HTTPResponse hello_name(HTTPRequest request) {
+    HTTPResponse response;
+    response.response_code = 200;
+    response.body = "Hello " + request.params.get("name") + "!";
+    return response;
+}
