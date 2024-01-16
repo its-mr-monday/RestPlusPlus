@@ -38,6 +38,9 @@ std::string get_application_dir() {
 
 HTTPRequest parse_request(std::string request) {
     HTTPRequest req;
+    //Create a empty HTTPRequestParams object
+    //A class function will be used to fill this object
+    req.params = HTTPRequestParams();
     std::stringstream ss(request);
     std::string line;
     std::getline(ss, line);

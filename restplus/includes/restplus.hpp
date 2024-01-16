@@ -38,7 +38,6 @@ class RestPlus {
         void remove_route(std::string path);
         void remove_dynamic_route(std::string path);
         std::map<std::string, HTTPResponse (*)(HTTPRequest)> routes;
-        std::map<std::string, HTTPResponse(*)(HTTPRequest, std::map<std::string, std::string>)> dynamic_routes;
         std::map<std::string, std::vector<std::string>> route_methods;
         std::vector<std::thread> threads;
         std::vector<std::string> get_methods(std::string path);

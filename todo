@@ -1,3 +1,15 @@
  1 . Add a system for dynamic routes
-  + Example: api.on("/user/<id>", { METHODS }, &funcpointer);
-  + this should create a param template for the route
+  + Example we create a dynamic route: /api/v1/<user>/posts/<post_id>/comments/<comment_id>
+  + Lets say they pass in: /api/v1/rickjames/posts/11233/comments/e11012/121
+  + We would parse the following map as so:
+  {
+    "user": "rickjames",
+    "post_id": "11233",
+    "comment_id": "e11012/121"
+  }
+  + This would be set as the HTTPRequest params object
+  + We could then access these values in C++ by calling the params objects methods
+  + Example:
+    + params.get("user") -> "rickjames"
+    + params.get("post_id") -> "11233"
+    + params.get("comment_id") -> "e11012/121"
