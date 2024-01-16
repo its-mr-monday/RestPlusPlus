@@ -1,5 +1,6 @@
 #include "reststructs.hpp"
 #include "restplusexception.hpp"
+#include <future>
 #include <thread>
 #include <iostream>
 #include <vector>
@@ -37,7 +38,6 @@ class RestPlus {
         HTTPResponse handle_request(HTTPRequest request);
         HTTPResponse (*handler404) (HTTPRequest);
         HTTPResponse run404(HTTPRequest request);
-        void thread_closer();
 };
 
 bool is_file(std::string file_path);
