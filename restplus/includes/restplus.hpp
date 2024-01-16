@@ -9,6 +9,9 @@
  * Pass in a secret key and then use the On method to create endpoints
  * Then call the Start method to start the server
  */
+
+void thread_closer(bool &running, std::vector<std::thread> &threads, int &CURRENT_THREADS);
+
 class RestPlus {
     public:
         RestPlus(std::string secret_key);
@@ -25,16 +28,23 @@ class RestPlus {
         void Start(bool debug = false, bool logging = false);
         //Set the 404 handler function
         void Set404Handler(HTTPResponse (*handler)(HTTPRequest));
+        //Set the maximum number of threads
+        void SetMaxThreads(int max_threads);
+        HTTPResponse handle_request(HTTPRequest request);
     private:
         RestPlusAPIInfo api_info;
         std::string secret_key;
+
+        bool running = false;
         std::map<std::string, HTTPResponse (*)(HTTPRequest)> routes;
         std::map<std::string, std::vector<std::string>> route_methods;
         std::map<std::string, bool> route_dynamic;
         std::map<std::string, HTTPRequestParamFields> route_param_fields;
         std::vector<std::thread> threads;
+        std::thread thread_manager;
+        int MAX_THREADS = 10; //Can be changed by user
+        int CURRENT_THREADS = 0;
         std::vector<std::string> get_methods(std::string path);
-        HTTPResponse handle_request(HTTPRequest request);
         HTTPResponse (*handler404) (HTTPRequest);
         HTTPResponse run404(HTTPRequest request);
         void thread_closer();

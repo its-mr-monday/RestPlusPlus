@@ -8,6 +8,21 @@
 #include <sys/stat.h>
 #endif
 
+//Pass values by reference so that they can be modified
+void thread_closer(bool &running, std::vector<std::thread> &threads, int &CURRENT_THREADS) {
+    while (running) {
+        //Join threads that have finished and reduce current threads
+        for (int i = 0; i < threads.size(); i++) {
+            if (threads[i].joinable()) {
+                threads[i].join();
+                CURRENT_THREADS--;
+            }
+        }
+        //sleep for 1 second
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+}
+
 bool is_file(std::string file_path) {
 #ifdef __unix__
     struct stat buf;
@@ -119,137 +134,147 @@ RestPlus::RestPlus(std::string secret_key) {
     this->secret_key = secret_key;
 }
 
+void RestPlus::SetMaxThreads(int max_threads) {
+    this->MAX_THREADS = max_threads;
+}
+
+#ifdef __unix__
+void handle_client_thread(SOCKET client_socket, struct sockaddr_in client_address, struct socklen_t client_length, RestPlus &api, RestPlusAPIInfo api_info) {
+    char buffer[1024];
+    std::stringstream requeststream;
+    do {
+        //Read the data from the socket into the buffer
+        int bytes_read = read(client_socket, buffer, 1024);
+
+        //Drop request
+        if (bytes_read < 0) {
+            close(client_socket);
+            return;
+        }
+        requeststream << buffer;
+    } while (bytes_read > 0 || requeststream.str().find("\r\n\r\n") == std::string::npos);
+
+    HTTPRequest request = parse_request(requeststream.str());
+    //Handle the request
+    HTTPResponse response = api.handle_request(request);
+    //Send the response
+    std::string response_string = response.to_string();
+    int bytes_sent = send(client_socket, response_string.c_str(), response_string.length(), 0);
+    if (bytes_sent < 0) {
+        std::stringstream ss;
+        ss << "Error sending response\n";
+        close(client_socket);
+    }
+    //Close the socket
+    close(client_socket);
+    //Log the request
+    if (api_info.LOGGING) {
+        std::string log_file_path = get_application_dir() + "/" + api_info.LOG_FILE_NAME;
+        log_request(request, response, log_file_path);
+    }
+
+}
+#else
+void handle_client_thread(SOCKET client_socket, struct sockaddr_in client_address, int client_length, RestPlus &api, RestPlusAPIInfo api_info) {
+    char buffer[1024];
+    std::stringstream requeststream;
+    int bytes_read;
+    do {
+        bytes_read = recv(client_socket, buffer, 1024, 0);
+        //Drop request
+        if (bytes_read == SOCKET_ERROR) {
+            closesocket(client_socket);
+            return;
+        }
+        requeststream << buffer;
+    } while (bytes_read > 0 || requeststream.str().find("\r\n\r\n") == std::string::npos);
+    //Parse the data into a HTTPRequest object
+    HTTPRequest request = parse_request(requeststream.str());
+    //Handle the request
+    HTTPResponse response = api.handle_request(request);
+    //Send the response
+    std::string response_string = response.to_string();
+    int bytes_sent = send(client_socket, response_string.c_str(), response_string.length(), 0);
+    if (bytes_sent == SOCKET_ERROR) {
+        std::stringstream ss;
+        ss << "Error sending response\n";
+        closesocket(client_socket);
+
+    }
+    //Close the socket
+    closesocket(client_socket);
+    //Log the request
+    if (api_info.LOGGING) {
+        std::string log_file_path = get_application_dir() + "/" + api_info.LOG_FILE_NAME;
+        log_request(request, response, log_file_path);
+    }
+}
+#endif
+
 void RestPlus::Start(int port, bool debug = false, bool logging = false) {
     this->api_info.PORT = port;
     this->api_info.DEBUG_MODE = debug;
     this->api_info.LOGGING = logging;
+    this->running = true;
+    this->thread_manager = std::thread(thread_closer, std::ref(this->running), std::ref(this->threads), std::ref(this->CURRENT_THREADS));
     SERVER_SOCKET server_socket = create_server_socket("127.0.0.1", port);
     while (true) {
-    try {
+        try {
 #ifdef __unix__
-    //Accept as many connections as possible
-    listen(server_socket.socket, 5);
-    //Create a socket to hold the connection
-    SOCKET client_socket;
-    //Create a sockaddr_in object called client_address
-    struct sockaddr_in client_address;
-    socklen_t client_length = sizeof(client_address);
-    //Create a thread to handle each connection
-    while (true) {
-        client_socket = accept(server_socket.socket, (struct sockaddr *) &client_address, &client_length);
-        if (client_socket < 0) {
-            std::stringstream ss;
-            ss << "Error on accept\n";
-            throw RestPlusException(ss.str());
-        }
-        threads.push_back(std::thread([this, client_socket, client_address, client_length] {
-            //Create a buffer to hold the incoming data
-            char buffer[1024];
-            std::stringstream requeststream;
-            do {
-                //Read the data from the socket into the buffer
-                int bytes_read = read(client_socket, buffer, 1024);
-                if (bytes_read < 0) {
+        //Accept as many connections as possible
+            listen(server_socket.socket, 5);
+            //Create a socket to hold the connection
+            SOCKET client_socket;
+            //Create a sockaddr_in object called client_address
+            struct sockaddr_in client_address;
+            socklen_t client_length = sizeof(client_address);
+            //Create a thread to handle each connection
+            while (true) {
+                client_socket = accept(server_socket.socket, (struct sockaddr *) &client_address, &client_length);
+                if (client_socket < 0) {
                     std::stringstream ss;
-                    requeststream.clear();
-                    close(client_socket);
-                    break;
+                    ss << "Error on accept\n";
+                    throw RestPlusException(ss.str());
                 }
-                requeststream << buffer;
-            } while (bytes_read > 0 || requeststream.str().find("\r\n\r\n") == std::string::npos);
-            //Parse the data into a HTTPRequest object
-            if (requeststream.str() == "") {
-                continue;
+                threads.push_back(std::thread([this, client_socket, client_address, client_length] {
+                    handle_client_thread(client_socket, client_address, client_length, *this, this->api_info);
+                }));
             }
-            HTTPRequest request = parse_request(requeststream.str());
-            //Handle the request
-            HTTPResponse response = this->handle_request(request);
-            //Send the response
-            std::string response_string = response.to_string();
-            int bytes_sent = send(client_socket, response_string.c_str(), response_string.length(), 0);
-            if (bytes_sent < 0) {
-                std::stringstream ss;
-                ss << "Error sending response\n";
-                throw RestPlusException(ss.str());
-            }
-            //Close the socket
-            close(client_socket);
-            //Log the request
-            if (this->api_info.LOGGING) {
-                std::string log_file_path = get_application_dir() + "/" + this->api_info.LOG_FILE_NAME;
-                log_request(request, response, log_file_path);
-            }
-        }));
-    }
 #else
-    //Listen for requests
-    listen(server_socket.socket, SOMAXCONN);
-    //Create a socket to hold the connection
-    SOCKET client_socket;
-    //Create a sockaddr_in object called client_address
-    struct sockaddr_in client_address;
-    int client_length = sizeof(client_address);
-    //Create a thread to handle each connection
-    while (true) {
-        client_socket = accept(server_socket.socket, (struct sockaddr *) &client_address, &client_length);
-        if (client_socket == INVALID_SOCKET) {
-            std::stringstream ss;
-            ss << "Error on accept\n";
-            //close client socket and continue
-            closesocket(client_socket);
-            continue;
-        }
-        threads.push_back(std::thread([this, client_socket, client_address, client_length] {
-            //Create a buffer to hold the incoming data
-            char buffer[1024];
-            //Read the data from the socket into the buffer
-            std::stringstream requeststream;
-            int bytes_read;
-            do {
-                bytes_read = recv(client_socket, buffer, 1024, 0);
-                if (bytes_read == SOCKET_ERROR) {
-                    //DROP REQUEST
-                    requeststream.clear();
+        //Listen for requests
+            listen(server_socket.socket, SOMAXCONN);
+            //Create a socket to hold the connection
+            SOCKET client_socket;
+            //Create a sockaddr_in object called client_address
+            struct sockaddr_in client_address;
+            int client_length = sizeof(client_address);
+            //Create a thread to handle each connection
+            while (true) {
+                client_socket = accept(server_socket.socket, (struct sockaddr *) &client_address, &client_length);
+                if (client_socket == INVALID_SOCKET) {
+                    std::stringstream ss;
+                    ss << "Error on accept\n";
+                    //close client socket and continue
                     closesocket(client_socket);
-                    return;
+                    continue;
                 }
-                requeststream << buffer;
-            } while (bytes_read > 0 || requeststream.str().find("\r\n\r\n") == std::string::npos);
-            //Parse the data into a HTTPRequest object
-            HTTPRequest request = parse_request(requeststream.str());
-            //Handle the request
-            HTTPResponse response = this->handle_request(request);
-            //Send the response
-            std::string response_string = response.to_string();
-            int bytes_sent = send(client_socket, response_string.c_str(), response_string.length(), 0);
-            if (bytes_sent == SOCKET_ERROR) {
-                std::stringstream ss;
-                ss << "Error sending response\n";
-                closesocket(client_socket);
-
+                threads.push_back(std::thread([this, client_socket, client_address, client_length] {
+                    handle_client_thread(client_socket, client_address, client_length, *this, this->api_info);
+                }));
             }
-            //Close the socket
-            closesocket(client_socket);
-            //Log the request
-            if (this->api_info.LOGGING) {
-                std::string log_file_path = get_application_dir() + "/" + this->api_info.LOG_FILE_NAME;
-                log_request(request, response, log_file_path);
-            }
-        }));
-    }
-
 #endif
-    } catch (std::exception& e) {
-        //If its a keyboard interrupt we must sigkill
-        if (e.what() == "Keyboard Interrupt") {
+        } catch (std::exception& e) {
+            //If its a keyboard interrupt we must sigkill
+            if (e.what() == "Keyboard Interrupt") {
+                dispose_server_socket(server_socket);
+                exit(0);
+            }
+            std::stringstream ss;
+            ss << "Exception occured: " << e.what() << "\n";
             dispose_server_socket(server_socket);
-            exit(0);
+            server_socket = create_server_socket("127.0.0.1", port);
         }
-        std::stringstream ss;
-        ss << "Exception occured: " << e.what() << "\n";
-        dispose_server_socket(server_socket);
-        server_socket = create_server_socket("127.0.0.1", port);
-    }}
+    }
     dispose_server_socket(server_socket);
 }
 
@@ -262,6 +287,8 @@ RestPlus::RestPlus(std::string secret_key) {
 }
 
 RestPlus::~RestPlus() {
+    this->running = false;
+    this->thread_manager.join();
     for (auto& thread : threads) {
         thread.join();
     }
