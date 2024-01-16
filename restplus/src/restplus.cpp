@@ -4,8 +4,20 @@
 #include <fstream>
 #ifdef __unix__
 #include <limits.h>
+#include <sys/stat.h>
 #endif
 
+bool is_file(std::string file_path) {
+#ifdef __unix__
+    struct stat buf;
+    stat(file_path.c_str(), &buf);
+    return S_ISREG(buf.st_mode);
+#else
+    LPCWSTR path = (LPCWSTR) file_path.c_str();
+    DWORD dwAttrib = GetFileAttributes(path);
+    return (dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
+#endif
+}
 
 std::string get_application_dir() {
 #ifdef __unix__
@@ -205,6 +217,11 @@ RestPlus::~RestPlus() {
     }
 }
 
+void RestPlus::remove_route(std::string route) {
+    this->routes.erase(route);
+    this->route_methods.erase(route);
+}
+
 std::vector<std::string> RestPlus::get_methods(std::string path) {
     std::vector<std::string> methods;
     for (auto& route : route_methods) {
@@ -245,13 +262,10 @@ HTTPResponse RestPlus::handle_request(HTTPRequest request) {
     try {
         if (routes.find(key) != routes.end()) {
             res = routes[key](request);
-        } else {
-            res.setResponseCode(404);
-            res.setBody("Not Found");
-            res.addHeader("Content-Type", "text/plain");
-            res.addHeader("Access-Control-Allow-Origin", "*");
-            res.addHeader("Access-Control-Allow-Headers", "Content-Type");
-            res.setVersion("HTTP/1.1");
+        } 
+        
+        else {
+            res = this->run404(request);
             return res;
         }
     } catch (std::exception& e) {
@@ -263,5 +277,48 @@ HTTPResponse RestPlus::handle_request(HTTPRequest request) {
         res.setVersion("HTTP/1.1");
         return res;
     }
+    return res;
+}
+
+//UTIL FUNCTION FOR send_file
+std::string load_file_data(std::string file_path) {
+    std::ifstream file(file_path);
+    std::stringstream ss;
+    ss << file.rdbuf();
+    return ss.str();
+}
+
+HTTPResponse send_file(std::string file_path, HTTPRequest request) {
+    HTTPResponse res;
+    if (file_path == "") {
+        throw RestPlusException("File path cannot be empty");
+    }
+    if (!is_file(file_path)) {
+        res.setBody("File not found");
+        res.setResponseCode(404);
+        res.addHeader("Content-Type", "text/plain");
+        res.addHeader("Access-Control-Allow-Origin", "*");
+        res.addHeader("Access-Control-Allow-Headers", "Content-Type");
+        res.setVersion("HTTP/1.1");
+        return res;
+    }
+    std::string file_data = load_file_data(file_path);
+    res.setBody(file_data);
+    res.setResponseCode(200);
+    res.addHeader("Content-Type", "text/plain");
+    res.addHeader("Access-Control-Allow-Origin", "*");
+    res.addHeader("Access-Control-Allow-Headers", "Content-Type");
+    res.setVersion("HTTP/1.1");
+    return res;
+}
+
+HTTPResponse json_res(std::string json, int status_code, HTTPRequest request) {
+    HTTPResponse res;
+    res.setResponseCode(status_code);
+    res.setBody(json);
+    res.addHeader("Content-Type", "application/json");
+    res.addHeader("Access-Control-Allow-Origin", "*");
+    res.addHeader("Access-Control-Allow-Headers", "Content-Type");
+    res.setVersion("HTTP/1.1");
     return res;
 }

@@ -20,20 +20,37 @@ class RestPlus {
     public:
         RestPlus(std::string secret_key);
         ~RestPlus();
+        //Assgign a static route to a handler function
+        //Handler function takes in a HTTPRequest and returns a HTTPResponse
         void On(std::string path, std::vector<std::string> methods, HTTPResponse (*handler)(HTTPRequest));
+        //Assign a statis route with a single method to a handler function
+        //Handler function takes in a HTTPRequest and returns a HTTPResponse
         void On(std::string path, std::string method, HTTPResponse (*handler)(HTTPRequest));
+        //Start the server
         void Start(int port, bool debug = false, bool logging = false);
+        //Start the server with default port 5000
         void Start(bool debug = false, bool logging = false);
+        //Set the 404 handler function
+        void Set404Handler(HTTPResponse (*handler)(HTTPRequest));
     private:
         RestPlusAPIInfo api_info;
         std::string secret_key;
+        void remove_route(std::string path);
+        void remove_dynamic_route(std::string path);
         std::map<std::string, HTTPResponse (*)(HTTPRequest)> routes;
+        std::map<std::string, HTTPResponse(*)(HTTPRequest, std::map<std::string, std::string>)> dynamic_routes;
         std::map<std::string, std::vector<std::string>> route_methods;
         std::vector<std::thread> threads;
         std::vector<std::string> get_methods(std::string path);
         HTTPResponse handle_request(HTTPRequest request);
+        HTTPResponse (*handler404) (HTTPRequest);
+        HTTPResponse run404(HTTPRequest request);
+
 };
 
+bool is_file(std::string file_path);
+HTTPResponse send_file(std::string file_path, std::string filename, HTTPRequest request);
+HTTPResponse json_res(std::string json, int status_code, HTTPRequest request);
 /*
 For any given request we will store one function
 

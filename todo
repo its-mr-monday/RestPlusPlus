@@ -1,0 +1,2 @@
+ 1 . Add a system for dynamic routes
+  + Example: api.on("/user/<id>", { METHODS }, &funcpointer);
