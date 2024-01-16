@@ -1,2 +1,3 @@
  1 . Add a system for dynamic routes
   + Example: api.on("/user/<id>", { METHODS }, &funcpointer);
+  + this should create a param template for the route
