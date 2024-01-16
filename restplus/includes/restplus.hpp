@@ -4,13 +4,6 @@
 #include <iostream>
 #include <vector>
 
-struct RestPlusAPIInfo {
-    bool DEBUG_MODE = false;
-    bool LOGGING = false;
-    std::string LOG_FILE_NAME = "restplus.log";
-    int PORT = 5000;
-};
-
 /* RestPlus API class
  * Used to generate REST API endpoints and start the server
  * Pass in a secret key and then use the On method to create endpoints
@@ -39,6 +32,8 @@ class RestPlus {
         void remove_dynamic_route(std::string path);
         std::map<std::string, HTTPResponse (*)(HTTPRequest)> routes;
         std::map<std::string, std::vector<std::string>> route_methods;
+        std::map<std::string, bool> route_dynamic;
+        std::map<std::string, HTTPRequestParamFields> route_param_fields;
         std::vector<std::thread> threads;
         std::vector<std::string> get_methods(std::string path);
         HTTPResponse handle_request(HTTPRequest request);

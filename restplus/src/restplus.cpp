@@ -2,6 +2,7 @@
 #include <sstream>
 #include "socketfunc.hpp"
 #include <fstream>
+#include <regex>
 #ifdef __unix__
 #include <limits.h>
 #include <sys/stat.h>
@@ -34,6 +35,38 @@ std::string get_application_dir() {
     std::size_t found = str.find_last_of("/\\");
     return str.substr(0, found);
 #endif
+}
+
+HTTPRequestParams parse_request_params(HTTPRequest request, HTTPRequestParamFields fields) {
+    HTTPRequestParams params;
+    //remove first / from path
+    std::string path = request.path.substr(1);
+    std::stringstream ss(path);
+    std::string section;
+    int section_num = 0;
+    bool lastRun = false;
+    while (std::getline(ss, section, '/')) {
+        //If we are at the last section_num append all the rest of the path to the last section
+        if (section_num == fields.sections - 1) {
+            lastRun = true;
+            std::string last_section;
+            while (std::getline(ss, last_section, '/')) {
+                section += "/" + last_section;
+            }
+        }
+        if (fields.section_defs[section_num].constant) {
+            if (fields.section_defs[section_num].codename != section) {
+                throw RestPlusException("Invalid path");
+            }
+        }
+        else {
+            params.add(fields.section_defs[section_num].codename, section);
+        }
+        if (lastRun) {
+            break;
+        }
+    }
+    return params;
 }
 
 HTTPRequest parse_request(std::string request) {
@@ -237,6 +270,20 @@ std::vector<std::string> RestPlus::get_methods(std::string path) {
     return methods;
 }
 
+bool is_dynamic(std::string path) {
+    //use regex to determine if the path is dynamic
+    std::regex pattern("<[a-zA-Z0-9]+>");
+    std::smatch match;
+    return std::regex_search(path, match, pattern);
+}
+
+HTTPRequestParamFields parse_fields(std::string path) {
+    //Use regex to do this based on the path
+    //Parse contants and
+    HTTPRequestParamFields fields;
+
+}
+
 void RestPlus::On(std::string path, std::vector<std::string> methods, HTTPResponse (*handler)(HTTPRequest)) {
     std::vector<std::string> existing_methods = this->get_methods(path);
     if (existing_methods.size() != 0) {
@@ -249,6 +296,12 @@ void RestPlus::On(std::string path, std::vector<std::string> methods, HTTPRespon
             }
         }
     }
+    //If the path is dynamic we must store the param fields
+    bool dynamic = is_dynamic(path);
+    HTTPRequestParamFields fields;
+    //Check if there is a pattern in the path that makes it dynamic
+    //<> is the pattern within this there should be a variable name
+
     this->routes[path] = handler;
     this->route_methods[path] = existing_methods;
 }

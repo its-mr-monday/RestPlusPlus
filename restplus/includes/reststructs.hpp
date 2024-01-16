@@ -1,6 +1,44 @@
 #include <string>
 #include <map>
 
+struct RestPlusAPIInfo {
+    bool DEBUG_MODE = false;
+    bool LOGGING = false;
+    std::string LOG_FILE_NAME = "restplus.log";
+    int PORT = 5000;
+};
+
+
+struct HTTPRequestParamField {
+    bool constant = true;
+    std::string codename;
+
+};
+/* 
+Example route: /hello/<name>/info/<age>
+int sections = 4;
+section_defs = {
+    {
+        0: { contant: true, codename: "hello" }
+    },
+    {
+        1: { contant: false, codename: "name" }
+    },
+    {
+        2: { contant: true, codename: "info" }
+    },
+    {
+        3: { contant: false, codename: "age" }
+    }
+}
+*/
+struct HTTPRequestParamFields {
+    std::string route;
+    int sections;
+    std::map<int, HTTPRequestParamField> section_defs;
+
+};
+
 struct HTTPRequestParams {
     std::map<std::string, std::string> params;
     void add(std::string key, std::string value);

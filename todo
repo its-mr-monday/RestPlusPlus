@@ -7,7 +7,7 @@
     "post_id": "11233",
     "comment_id": "e11012/121"
   }
-  + This would be set as the HTTPRequest params object
+  + This would be set as the HTTPRequestParams struct within the HTTPRequest structs params field
   + We could then access these values in C++ by calling the params objects methods
   + Example:
     + params.get("user") -> "rickjames"
