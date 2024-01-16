@@ -1,23 +1,198 @@
 #include "restplus.hpp"
 #include <sstream>
+#include "socketfunc.hpp"
+#include <fstream>
 #ifdef __unix__
-//POSIX headers
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <unistd.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#else
-//Windows headers
-#include <winsock2.h>
-#include <windows.h>
-#include <ws2tcpip.h>
-#include <shlwapi.h>
-// Need to link with Ws2_32.lib, Mswsock.lib, and Advapi32.lib
-#pragma comment (lib, "Ws2_32.lib")
-#pragma comment (lib, "Mswsock.lib")
-#pragma comment (lib, "AdvApi32.lib")
+#include <limits.h>
 #endif
+
+std::string get_application_dir() {
+#ifdef __unix__
+    char result[PATH_MAX];
+    ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);
+    std::string path = std::string(result, (count > 0) ? count : 0);
+    std::size_t found = path.find_last_of("/\\");
+    return path.substr(0, found);
+#else
+    LPWSTR path = new WCHAR[MAX_PATH];
+    GetModuleFileName(NULL, path, MAX_PATH);
+    std::wstring ws(path);
+    std::string str(ws.begin(), ws.end());
+    std::size_t found = str.find_last_of("/\\");
+    return str.substr(0, found);
+#endif
+}
+
+HTTPRequest parse_request(std::string request) {
+    HTTPRequest req;
+    std::stringstream ss(request);
+    std::string line;
+    std::getline(ss, line);
+    std::stringstream first_line(line);
+    std::string method;
+    std::string path;
+    std::string version;
+    first_line >> method >> path >> version;
+    req.setMethod(method);
+    req.setPath(path);
+    req.setVersion(version);
+    while (std::getline(ss, line)) {
+        if (line == "\r") {
+            break;
+        }
+        std::stringstream header_line(line);
+        std::string key;
+        std::string value;
+        std::getline(header_line, key, ':');
+        std::getline(header_line, value);
+        req.addHeader(key, value);
+    }
+    std::string body;
+    //Get the rest of the request as the body
+    std::getline(ss, body, '\0');
+    req.setBody(body);
+    return req;
+}
+
+void log_request(HTTPRequest request, HTTPResponse response, std::string log_file_path) {
+    std::ofstream log_file;
+    std::stringstream ss;
+    ss << "HTTP" << request.method << " " << request.path << "" << response.response_code;
+    ss << "\nBODY\n" << request.body << "\n";
+    ss << "\nRESPONSE\n" << response.body << "\n"; 
+    log_file.open(log_file_path, std::ios_base::app);
+    log_file << ss.str() << std::endl;
+    ss.clear();
+    log_file.close();
+}
+
+RestPlus::RestPlus(std::string secret_key) {
+    this->secret_key = secret_key;
+}
+
+void RestPlus::Start(int port, bool debug = false, bool logging = false) {
+    this->api_info.PORT = port;
+    this->api_info.DEBUG_MODE = debug;
+    this->api_info.LOGGING = logging;
+    SERVER_SOCKET server_socket = create_server_socket("127.0.0.1", port);
+    while (true) {
+    try {
+#ifdef __unix__
+    //Accept as many connections as possible
+    listen(server_socket.socket, 5);
+    //Create a socket to hold the connection
+    SOCKET client_socket;
+    //Create a sockaddr_in object called client_address
+    struct sockaddr_in client_address;
+    socklen_t client_length = sizeof(client_address);
+    //Create a thread to handle each connection
+    while (true) {
+        client_socket = accept(server_socket.socket, (struct sockaddr *) &client_address, &client_length);
+        if (client_socket < 0) {
+            std::stringstream ss;
+            ss << "Error on accept\n";
+            throw RestPlusException(ss.str());
+        }
+        threads.push_back(std::thread([this, client_socket, client_address, client_length] {
+            //Create a buffer to hold the incoming data
+            char buffer[1024];
+            //Read the data from the socket into the buffer
+            int bytes_read = read(client_socket, buffer, 1024);
+            if (bytes_read < 0) {
+                std::stringstream ss;
+                ss << "Error reading from socket\n";
+                throw RestPlusException(ss.str());
+            }
+            //Parse the data into a HTTPRequest object
+            HTTPRequest request = parse_request(buffer);
+            //Handle the request
+            HTTPResponse response = this->handle_request(request);
+            //Send the response
+            std::string response_string = response.to_string();
+            int bytes_sent = send(client_socket, response_string.c_str(), response_string.length(), 0);
+            if (bytes_sent < 0) {
+                std::stringstream ss;
+                ss << "Error sending response\n";
+                throw RestPlusException(ss.str());
+            }
+            //Close the socket
+            close(client_socket);
+            //Log the request
+            if (this->api_info.LOGGING) {
+                std::string log_file_path = get_application_dir() + "/" + this->api_info.LOG_FILE_NAME;
+                log_request(request, response, log_file_path);
+            }
+        }));
+    }
+#else
+    //Listen for requests
+    listen(server_socket.socket, SOMAXCONN);
+    //Create a socket to hold the connection
+    SOCKET client_socket;
+    //Create a sockaddr_in object called client_address
+    struct sockaddr_in client_address;
+    int client_length = sizeof(client_address);
+    //Create a thread to handle each connection
+    while (true) {
+        client_socket = accept(server_socket.socket, (struct sockaddr *) &client_address, &client_length);
+        if (client_socket == INVALID_SOCKET) {
+            std::stringstream ss;
+            ss << "Error on accept\n";
+            //close client socket and continue
+            closesocket(client_socket);
+            continue;
+        }
+        threads.push_back(std::thread([this, client_socket, client_address, client_length] {
+            //Create a buffer to hold the incoming data
+            char buffer[1024];
+            //Read the data from the socket into the buffer
+            int bytes_read = recv(client_socket, buffer, 1024, 0);
+            if (bytes_read == SOCKET_ERROR) {
+                std::stringstream ss;
+                ss << "Error reading from socket\n";
+                throw RestPlusException(ss.str());
+            }
+            //Parse the data into a HTTPRequest object
+            HTTPRequest request = parse_request(buffer);
+            //Handle the request
+            HTTPResponse response = this->handle_request(request);
+            //Send the response
+            std::string response_string = response.to_string();
+            int bytes_sent = send(client_socket, response_string.c_str(), response_string.length(), 0);
+            if (bytes_sent == SOCKET_ERROR) {
+                std::stringstream ss;
+                ss << "Error sending response\n";
+                closesocket(client_socket);
+
+            }
+            //Close the socket
+            closesocket(client_socket);
+            //Log the request
+            if (this->api_info.LOGGING) {
+                std::string log_file_path = get_application_dir() + "/" + this->api_info.LOG_FILE_NAME;
+                log_request(request, response, log_file_path);
+            }
+        }));
+    }
+
+#endif
+    } catch (std::exception& e) {
+        //If its a keyboard interrupt we must sigkill
+        if (e.what() == "Keyboard Interrupt") {
+            dispose_server_socket(server_socket);
+            exit(0);
+        }
+        std::stringstream ss;
+        ss << "Exception occured: " << e.what() << "\n";
+        dispose_server_socket(server_socket);
+        server_socket = create_server_socket("127.0.0.1", port);
+    }}
+    dispose_server_socket(server_socket);
+}
+
+void RestPlus::Start(bool debug = false, bool logging = false) {
+    this->Start(5000, debug, logging);
+}
 
 RestPlus::RestPlus(std::string secret_key) {
     this->secret_key = secret_key;
@@ -43,10 +218,14 @@ std::vector<std::string> RestPlus::get_methods(std::string path) {
 
 void RestPlus::On(std::string path, std::vector<std::string> methods, HTTPResponse (*handler)(HTTPRequest)) {
     std::vector<std::string> existing_methods = this->get_methods(path);
-    for (auto& method : methods) {
-        //Append any new methods to the existing methods
-        if (std::find(existing_methods.begin(), existing_methods.end(), method) == existing_methods.end()) {
-            existing_methods.push_back(method);
+    if (existing_methods.size() != 0) {
+        for (auto& method : methods) {
+            //Append any new methods to the existing methods
+            for (auto& existing_method : existing_methods) {
+                if (existing_method != method) {
+                    existing_methods.push_back(method);
+                }
+            }
         }
     }
     this->routes[path] = handler;
@@ -85,13 +264,3 @@ HTTPResponse RestPlus::handle_request(HTTPRequest request) {
     }
     return res;
 }
-
-#ifdef __unix__
-void dispach_request(int socket, RestPlus *api) {
-    
-}
-#else
-void dispach_request(SOCKET socket, RestPlus *api) {
-    
-}
-#endif

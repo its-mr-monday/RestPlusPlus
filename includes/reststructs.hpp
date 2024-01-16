@@ -48,4 +48,5 @@ struct HTTPResponse {
     void setVersion(std::string version) {
         this->version = version;
     }
+    std::string to_string();
 };
