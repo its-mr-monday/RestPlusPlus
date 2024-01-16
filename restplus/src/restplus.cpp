@@ -145,15 +145,23 @@ void RestPlus::Start(int port, bool debug = false, bool logging = false) {
         threads.push_back(std::thread([this, client_socket, client_address, client_length] {
             //Create a buffer to hold the incoming data
             char buffer[1024];
-            //Read the data from the socket into the buffer
-            int bytes_read = read(client_socket, buffer, 1024);
-            if (bytes_read < 0) {
-                std::stringstream ss;
-                ss << "Error reading from socket\n";
-                throw RestPlusException(ss.str());
-            }
+            std::stringstream requeststream;
+            do {
+                //Read the data from the socket into the buffer
+                int bytes_read = read(client_socket, buffer, 1024);
+                if (bytes_read < 0) {
+                    std::stringstream ss;
+                    requeststream.clear();
+                    close(client_socket);
+                    break;
+                }
+                requeststream << buffer;
+            } while (bytes_read > 0 || requeststream.str().find("\r\n\r\n") == std::string::npos);
             //Parse the data into a HTTPRequest object
-            HTTPRequest request = parse_request(buffer);
+            if (requeststream.str() == "") {
+                continue;
+            }
+            HTTPRequest request = parse_request(requeststream.str());
             //Handle the request
             HTTPResponse response = this->handle_request(request);
             //Send the response
@@ -195,14 +203,20 @@ void RestPlus::Start(int port, bool debug = false, bool logging = false) {
             //Create a buffer to hold the incoming data
             char buffer[1024];
             //Read the data from the socket into the buffer
-            int bytes_read = recv(client_socket, buffer, 1024, 0);
-            if (bytes_read == SOCKET_ERROR) {
-                std::stringstream ss;
-                ss << "Error reading from socket\n";
-                throw RestPlusException(ss.str());
-            }
+            std::stringstream requeststream;
+            int bytes_read;
+            do {
+                bytes_read = recv(client_socket, buffer, 1024, 0);
+                if (bytes_read == SOCKET_ERROR) {
+                    //DROP REQUEST
+                    requeststream.clear();
+                    closesocket(client_socket);
+                    return;
+                }
+                requeststream << buffer;
+            } while (bytes_read > 0 || requeststream.str().find("\r\n\r\n") == std::string::npos);
             //Parse the data into a HTTPRequest object
-            HTTPRequest request = parse_request(buffer);
+            HTTPRequest request = parse_request(requeststream.str());
             //Handle the request
             HTTPResponse response = this->handle_request(request);
             //Send the response
@@ -253,11 +267,6 @@ RestPlus::~RestPlus() {
     }
 }
 
-void RestPlus::remove_route(std::string route) {
-    this->routes.erase(route);
-    this->route_methods.erase(route);
-}
-
 std::vector<std::string> RestPlus::get_methods(std::string path) {
     std::vector<std::string> methods;
     for (auto& route : route_methods) {
@@ -281,7 +290,46 @@ HTTPRequestParamFields parse_fields(std::string path) {
     //Use regex to do this based on the path
     //Parse contants and
     HTTPRequestParamFields fields;
+    //Example of a path: /home/<name>/info/<detail>
+    //Example of a path: /home/<name>
+    //Example of a path: /<filename>
+    //Use these to parse the path this is used for the On method once the path is determined dynamic
+    //We need to find the constant fields as well
+    //We need to find the dynamic fields as well
+    //We need to find the number of sections
+    //We need to find the section definitions
+    //We need to find the section definitions
+    //Find the contant fields "fields without <>"
+    //They should be started with a /
 
+    std::stringstream ss(path);
+    std::string section;
+    int section_num = 0;
+    while (std::getline(ss, section, '/')) {
+        if (section == "") {
+            continue;
+        }
+        if (section[0] == '<') {
+            //This is a dynamic field
+            //Remove the <> from the section
+            section = section.substr(1, section.length() - 2);
+            HTTPRequestParamField field;
+            field.constant = false;
+            field.codename = section;
+            fields.section_defs[section_num] = field;
+        }
+        else {
+            //This is a constant field
+            HTTPRequestParamField field;
+            field.constant = true;
+            field.codename = section;
+            fields.section_defs[section_num] = field;
+        }
+        section_num++;
+    }
+    fields.sections = section_num;
+    fields.route = path;
+    return fields;
 }
 
 void RestPlus::On(std::string path, std::vector<std::string> methods, HTTPResponse (*handler)(HTTPRequest)) {
@@ -298,7 +346,11 @@ void RestPlus::On(std::string path, std::vector<std::string> methods, HTTPRespon
     }
     //If the path is dynamic we must store the param fields
     bool dynamic = is_dynamic(path);
-    HTTPRequestParamFields fields;
+    if (dynamic) {
+        HTTPRequestParamFields fields = parse_fields(path);
+        this->route_param_fields[path] = fields;
+        this->route_dynamic[path] = true;
+    }
     //Check if there is a pattern in the path that makes it dynamic
     //<> is the pattern within this there should be a variable name
 

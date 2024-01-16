@@ -28,8 +28,6 @@ class RestPlus {
     private:
         RestPlusAPIInfo api_info;
         std::string secret_key;
-        void remove_route(std::string path);
-        void remove_dynamic_route(std::string path);
         std::map<std::string, HTTPResponse (*)(HTTPRequest)> routes;
         std::map<std::string, std::vector<std::string>> route_methods;
         std::map<std::string, bool> route_dynamic;
@@ -39,7 +37,7 @@ class RestPlus {
         HTTPResponse handle_request(HTTPRequest request);
         HTTPResponse (*handler404) (HTTPRequest);
         HTTPResponse run404(HTTPRequest request);
-
+        void thread_closer();
 };
 
 bool is_file(std::string file_path);
