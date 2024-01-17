@@ -133,10 +133,13 @@ void master_thread_func(MasterThreadRoutine args) {
 
 RestPlusThreadPool::RestPlusThreadPool() {
     MasterThreadRoutine master_thread_routine = { RUNNING, MAX_THREADS, job_queue, running_jobs };
-    //Make this->master_thread a lambda function
+    RUNNING = false;
+}
+
+void RestPlusThreadPool::start() {
     master_thread = std::thread(master_thread_func, master_thread_routine);
     RUNNING = true;
-}  
+}
 
 void RestPlusThreadPool::newjob(SOCKET client_socket, RestPlus &api, RestPlusAPIInfo api_info) {
     ThreadRoutine thread_routine;
@@ -154,11 +157,15 @@ void RestPlusThreadPool::join() {
     RUNNING = false;
     //Join the master thread
     master_thread.join();
+    //Clear job queue
+    this->clear_queue();
     //Join all the running jobs
     for (int i = 0; i < running_jobs.size(); i++) {
         Job job = running_jobs[i];
         job.thread.join();
     }
+    //Clear the running jobs
+    running_jobs.clear();
 }
 
 void RestPlusThreadPool::clear_queue() {

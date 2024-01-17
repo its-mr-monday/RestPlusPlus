@@ -57,6 +57,8 @@ class RestPlusThreadPool {
         void clear_queue();
         //Returns the size of the job queue
         int size();
+        //Starts the master thread
+        void start();
     private:
         std::vector<Job> job_queue;
         std::vector<Job> running_jobs;

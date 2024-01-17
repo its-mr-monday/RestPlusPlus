@@ -146,89 +146,17 @@ RestPlus::RestPlus(std::string secret_key) {
 }
 
 void RestPlus::SetMaxThreads(int max_threads) {
-    this->MAX_THREADS = max_threads;
+    this->thread_pool.set_max_threads(max_threads);
 }
-
-#ifdef __unix__
-void handle_client_thread(SOCKET client_socket, struct sockaddr_in client_address, struct socklen_t client_length, RestPlus &api, RestPlusAPIInfo api_info) {
-    char buffer[1024];
-    std::stringstream requeststream;
-    int bytes_read;
-    do {
-        //Read the data from the socket into the buffer
-        bytes_read = read(client_socket, buffer, 1024);
-
-        //Drop request
-        if (bytes_read < 0) {
-            close(client_socket);
-            return;
-        }
-        requeststream << buffer;
-    } while (bytes_read > 0 || requeststream.str().find("\r\n\r\n") == std::string::npos);
-
-    HTTPRequest request = parse_request(requeststream.str());
-    //Handle the request
-    HTTPResponse response = api.handle_request(request);
-    //Send the response
-    std::string response_string = response.to_string();
-    int bytes_sent = send(client_socket, response_string.c_str(), response_string.length(), 0);
-    if (bytes_sent < 0) {
-        std::stringstream ss;
-        ss << "Error sending response\n";
-        close(client_socket);
-    }
-    //Close the socket
-    close(client_socket);
-    //Log the request
-    if (api_info.LOGGING) {
-        std::string log_file_path = get_application_dir() + "/" + api_info.LOG_FILE_NAME;
-        log_request(request, response, log_file_path);
-    }
-
-}
-#else
-void handle_client_thread(SOCKET client_socket, struct sockaddr_in client_address, int client_length, RestPlus &api, RestPlusAPIInfo api_info) {
-    char buffer[1024];
-    std::stringstream requeststream;
-    int bytes_read;
-    do {
-        bytes_read = recv(client_socket, buffer, 1024, 0);
-        //Drop request
-        if (bytes_read == SOCKET_ERROR) {
-            closesocket(client_socket);
-            return;
-        }
-        requeststream << buffer;
-    } while (bytes_read > 0 || requeststream.str().find("\r\n\r\n") == std::string::npos);
-    //Parse the data into a HTTPRequest object
-    HTTPRequest request = parse_request(requeststream.str());
-    //Handle the request
-    HTTPResponse response = api.handle_request(request);
-    //Send the response
-    std::string response_string = response.to_string();
-    int bytes_sent = send(client_socket, response_string.c_str(), response_string.length(), 0);
-    if (bytes_sent == SOCKET_ERROR) {
-        std::stringstream ss;
-        ss << "Error sending response\n";
-        closesocket(client_socket);
-
-    }
-    //Close the socket
-    closesocket(client_socket);
-    //Log the request
-    if (api_info.LOGGING) {
-        std::string log_file_path = get_application_dir() + "/" + api_info.LOG_FILE_NAME;
-        log_request(request, response, log_file_path);
-    }
-}
-#endif
 
 void RestPlus::Start(int port, bool debug = false, bool logging = false) {
     this->api_info.PORT = port;
     this->api_info.DEBUG_MODE = debug;
     this->api_info.LOGGING = logging;
     this->running = true;
-    this->thread_manager = std::thread(thread_closer, std::ref(this->running), std::ref(this->threads), std::ref(this->CURRENT_THREADS));
+    
+    //Start the thread pool
+    this->thread_pool.start();
     SERVER_SOCKET server_socket = create_server_socket("127.0.0.1", port);
     while (true) {
         try {
@@ -255,6 +183,7 @@ void RestPlus::Start(int port, bool debug = false, bool logging = false) {
             //If its a keyboard interrupt we must sigkill
             if (e.what() == "Keyboard Interrupt") {
                 dispose_server_socket(server_socket);
+                this->thread_pool.join();
                 exit(0);
             }
             std::stringstream ss;
@@ -264,6 +193,7 @@ void RestPlus::Start(int port, bool debug = false, bool logging = false) {
         }
     }
     dispose_server_socket(server_socket);
+    this->thread_pool.join();   //Kill all threads prior to exit
 }
 
 void RestPlus::Start(bool debug = false, bool logging = false) {
@@ -276,10 +206,7 @@ RestPlus::RestPlus(std::string secret_key) {
 
 RestPlus::~RestPlus() {
     this->running = false;
-    this->thread_manager.join();
-    for (auto& thread : threads) {
-        thread.join();
-    }
+    this->thread_pool.join();
 }
 
 std::vector<std::string> RestPlus::get_methods(std::string path) {

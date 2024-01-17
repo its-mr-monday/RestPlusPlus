@@ -53,15 +53,6 @@ class RestPlus {
         //The map of routes to their param fields (only used in dynamic routes)
         std::map<std::string, HTTPRequestParamFields> route_param_fields;
 
-        //Thread management
-        //The vector of client threads
-        std::vector<std::thread> threads;
-        //The thread manager thread
-        std::thread thread_manager;
-        //The maximum number of threads
-        int MAX_THREADS = 10; //Can be changed by user
-        int CURRENT_THREADS = 0;
-
         //HTTP Methods
         std::vector<std::string> get_methods(std::string path);
         HTTPResponse (*handler404) (HTTPRequest);
