@@ -1,3 +1,4 @@
+#include "restplus.hpp"
 #include "restplusthreadpool.hpp"
 #include "socketfunc.hpp"
 #include <sstream>
@@ -172,4 +173,20 @@ void RestPlusThreadPool::join() {
         Job job = running_jobs[i];
         job.thread.join();
     }
+}
+
+void RestPlusThreadPool::clear_queue() {
+    job_queue.clear();
+}
+
+void RestPlusThreadPool::set_max_threads(int max_threads) {
+    MAX_THREADS = max_threads;
+}
+
+int RestPlusThreadPool::size() {
+    return job_queue.size();
+}
+
+RestPlusThreadPool::~RestPlusThreadPool() {
+    join();
 }

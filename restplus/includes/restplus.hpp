@@ -1,3 +1,4 @@
+#pragma once
 #include "reststructs.hpp"
 #include "restplusexception.hpp"
 #include "restplusthreadpool.hpp"
@@ -38,6 +39,8 @@ class RestPlus {
     //Private variables
         //The API info for the RestPlus class
         RestPlusAPIInfo api_info;
+        //The thread pool for the RestPlus class
+        RestPlusThreadPool thread_pool;
         //The secret key for the RestPlus class
         std::string secret_key;
         //The running variable for the RestPlus class

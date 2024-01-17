@@ -1,10 +1,14 @@
 #pragma once
-#include "restplus.hpp"
 #include "pcf.h"
 #include <thread>
 #include <vector>
 #include <iostream>
 #include <map>
+
+//Forward declaration of the RestPlus class
+class RestPlus;
+//Forward declaration of the RestPlusAPIInfo struct
+struct RestPlusAPIInfo;
 
 struct ThreadRoutine {
     bool RUNNING = false;
@@ -34,18 +38,21 @@ struct Job {
 
 class RestPlusThreadPool {
     public:
+        //Constructor of the RestPlusThreadPool class
         RestPlusThreadPool();
+        //Destructor of the RestPlusThreadPool class
         ~RestPlusThreadPool();
         //Creates a new job and adds it to the job queue
         void newjob(SOCKET client_socket, RestPlus &api, RestPlusAPIInfo api_info);
+        //Sets the maximum number of threads to be used at once
+        void set_max_threads(int max_threads);
         //Kills all threads and joins them, anything in job queue will be lost
         void join();
         //Clears the Job queue
         void clear_queue();
-        void clear();
+        //Returns the size of the job queue
         int size();
     private:
-        void startjob(int thread_id);
         std::vector<Job> job_queue;
         std::vector<Job> running_jobs;
         MasterThreadRoutine master_thread_routine;

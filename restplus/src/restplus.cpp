@@ -1,4 +1,5 @@
 #include "restplus.hpp"
+#include "restplusthreadpool.hpp"
 #include <sstream>
 #include "socketfunc.hpp"
 #include <fstream>
