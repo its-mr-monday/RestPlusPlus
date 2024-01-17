@@ -162,7 +162,10 @@ void RestPlusThreadPool::join() {
     //Join all the running jobs
     for (int i = 0; i < running_jobs.size(); i++) {
         Job job = running_jobs[i];
-        job.thread.join();
+        //Check if the thread has already join()
+        //master_thread should join all threads prior to exit
+        if (job.thread.joinable())
+            job.thread.join();
     }
     //Clear the running jobs
     running_jobs.clear();
