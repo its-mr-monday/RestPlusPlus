@@ -12,6 +12,7 @@
 void thread_closer(bool &running, std::vector<std::thread> &threads, int &CURRENT_THREADS) {
     while (running) {
         //Join threads that have finished and reduce current threads
+        CURRENT_THREADS = threads.size();
         for (int i = 0; i < threads.size(); i++) {
             if (threads[i].joinable()) {
                 threads[i].join();
@@ -23,6 +24,7 @@ void thread_closer(bool &running, std::vector<std::thread> &threads, int &CURREN
     }
 }
 
+//Simple function that takes in a file path and returns a bool
 bool is_file(std::string file_path) {
 #ifdef __unix__
     struct stat buf;
@@ -236,6 +238,9 @@ void RestPlus::Start(int port, bool debug = false, bool logging = false) {
                     ss << "Error on accept\n";
                     throw RestPlusException(ss.str());
                 }
+                //Create a thread to handle the client
+                //Ensure there are not too many threads
+                
                 threads.push_back(std::thread([this, client_socket, client_address, client_length] {
                     handle_client_thread(client_socket, client_address, client_length, *this, this->api_info);
                 }));

@@ -1,4 +1,5 @@
 //Defines sockets functions for posix and Windows
+#pragma once
 #ifdef __unix__
 //POSIX headers
 #include <sys/socket.h>
@@ -9,7 +10,6 @@
 //just make it easy
 using SOCKET = int;
 #else
-//Windows headers
 #include <winsock2.h>
 #include <windows.h>
 #include <ws2tcpip.h>
