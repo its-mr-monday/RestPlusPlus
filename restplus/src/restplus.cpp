@@ -132,6 +132,14 @@ void log_request(HTTPRequest request, HTTPResponse response, std::string log_fil
     log_file.close();
 }
 
+void debug_request(HTTPRequest request, HTTPResponse response) {
+    std::stringstream ss;
+    //Simpler function
+    //Sample print: HTTP GET /home 200
+    ss << "HTTP" << request.method << " " << request.path << "" << response.response_code;
+    std::cout << ss.str() << std::endl;
+}
+
 RestPlus::RestPlus(std::string secret_key) {
     this->secret_key = secret_key;
 }
@@ -144,9 +152,10 @@ void RestPlus::SetMaxThreads(int max_threads) {
 void handle_client_thread(SOCKET client_socket, struct sockaddr_in client_address, struct socklen_t client_length, RestPlus &api, RestPlusAPIInfo api_info) {
     char buffer[1024];
     std::stringstream requeststream;
+    int bytes_read;
     do {
         //Read the data from the socket into the buffer
-        int bytes_read = read(client_socket, buffer, 1024);
+        bytes_read = read(client_socket, buffer, 1024);
 
         //Drop request
         if (bytes_read < 0) {

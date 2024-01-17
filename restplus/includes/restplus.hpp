@@ -11,6 +11,9 @@
 //Takes a reference to the running variable, a reference to the threads vector, and a reference to the current threads variable
 //If running is false, then the function will return and allow the RestPlus object to clear threads and destroy itself
 void thread_closer(bool &running, std::vector<std::thread> &threads, int &CURRENT_THREADS);
+HTTPRequest parse_request(std::string request);
+void log_request(HTTPRequest request, HTTPResponse response, std::string log_file_path);
+void debug_request(HTTPRequest request, HTTPResponse response);
 
 class RestPlus {
     public:

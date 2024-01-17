@@ -1,17 +1,14 @@
 //Defines sockets functions for posix and Windows
 #pragma once
+#include "pcf.h"
 #ifdef __unix__
 //POSIX headers
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <unistd.h>
 #include <arpa/inet.h>
 #include <netdb.h>
-//just make it easy
-using SOCKET = int;
 #else
 #include <winsock2.h>
-#include <windows.h>
 #include <ws2tcpip.h>
 #include <shlwapi.h>
 // Need to link with Ws2_32.lib, Mswsock.lib, and Advapi32.lib
