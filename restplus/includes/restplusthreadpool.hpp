@@ -10,11 +10,13 @@ class RestPlus;
 //Forward declaration of the RestPlusAPIInfo struct
 struct RestPlusAPIInfo;
 
+//ThreadRoutine struct
 struct ThreadRoutine {
     bool RUNNING = false;
     bool HAS_EXITED = false;
 };
 
+//ThreadArguments struct
 struct ThreadArguments {
     RestPlus &api;
     SOCKET client_socket;
@@ -22,6 +24,7 @@ struct ThreadArguments {
     ThreadRoutine &thread_routine;
 };
 
+//MasterThreadRoutine struct
 struct MasterThreadRoutine {
     MasterThreadRoutine() = default;
     MasterThreadRoutine(bool &RUNNING, int &MAX_THREADS, std::vector<Job> &job_queue, std::vector<Job> &running_jobs);
@@ -31,11 +34,13 @@ struct MasterThreadRoutine {
     std::vector<Job> &running_jobs;
 };
 
+//Job struct
 struct Job {
     ThreadArguments &args;
     std::thread &thread;
 };
 
+//RestPlusThreadPool class
 class RestPlusThreadPool {
     public:
         //Constructor of the RestPlusThreadPool class

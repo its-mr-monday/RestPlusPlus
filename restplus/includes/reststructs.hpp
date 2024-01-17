@@ -1,6 +1,7 @@
 #include <string>
 #include <map>
 
+//RestPlusAPIInfo object
 struct RestPlusAPIInfo {
     bool DEBUG_MODE = false;
     bool LOGGING = false;
@@ -8,7 +9,7 @@ struct RestPlusAPIInfo {
     int PORT = 5000;
 };
 
-
+//HTTPRequestParamField object
 struct HTTPRequestParamField {
     bool constant = true;
     std::string codename;
@@ -32,6 +33,8 @@ section_defs = {
     }
 }
 */
+
+//HTTPRequestParamFields object
 struct HTTPRequestParamFields {
     std::string route;
     int sections;
@@ -39,6 +42,7 @@ struct HTTPRequestParamFields {
 
 };
 
+//HTTPRequestParams object
 struct HTTPRequestParams {
     std::map<std::string, std::string> params;
     void add(std::string key, std::string value);
@@ -48,6 +52,7 @@ struct HTTPRequestParams {
     bool has(std::string key);
 };
 
+//HTTPRequest object
 struct HTTPRequest {
     std::string method;
     std::string path;
@@ -64,6 +69,7 @@ struct HTTPRequest {
     std::string to_string();
 };
 
+//HTTPResponse object
 struct HTTPResponse {
     int response_code;
     std::string version;

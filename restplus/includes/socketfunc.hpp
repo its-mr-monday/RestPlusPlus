@@ -7,6 +7,9 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#define SOMAXCONN 128
+#define INVALID_SOCKET -1
+#define SOCKET_ERROR -1
 #else
 #include <winsock2.h>
 #include <ws2tcpip.h>
@@ -27,6 +30,14 @@ struct CLIENT_SOCKET {
     sockaddr_in address;
 };
 
+//Cross platform function will create a SERVER_SOCKET object and return it
 SERVER_SOCKET create_server_socket(const char * addr, int port);
 
+//Cross platform function will take in a client SOCKET and close it
+void multiclose(SOCKET socket);
+
+//Cross platform function will take in a SERVER_SOCKET and close it
 void dispose_server_socket(SERVER_SOCKET server_socket);
+
+//Cross platform function will take in a SOCKET, a buffer, and a buffer size and read from the socket into the buffer
+int multiread(SOCKET socket, char* buffer, int buffer_size);

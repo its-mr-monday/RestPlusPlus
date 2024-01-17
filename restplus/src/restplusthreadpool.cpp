@@ -44,42 +44,28 @@ void thread_func(ThreadArguments args) {
     int bytes_read;
     SOCKET client_socket = args.client_socket;
     do {
-#ifdef __unix__
-        bytes_read = read(client_socket, buffer, 1024);
-        if (bytes_read < 0) {
-            close(client_socket);
+        bytes_read = multiread(client_socket, buffer, 1024);
+        if (bytes_read < 0 || bytes_read == SOCKET_ERROR) {
+            multiclose(client_socket);
             args.thread_routine.HAS_EXITED = true;
             return;
         }
         requeststream << std::string(buffer, bytes_read);
-#else
-        bytes_read = recv(client_socket, buffer, 1024, 0);
-        if (bytes_read < 0) {
-            closesocket(client_socket);
-            args.thread_routine.HAS_EXITED = true;
-            return;
-        }
-        requeststream << std::string(buffer, bytes_read);
-#endif
     } while (bytes_read > 0 || requeststream.str().find("\r\n\r\n") == std::string::npos);
 
     HTTPRequest request = parse_request(requeststream.str());
     HTTPResponse response = args.api.handle_request(request);
     std::string response_string = response.to_string();
     int bytes_sent = send(client_socket, response_string.c_str(), response_string.length(), 0);
+    if (bytes_sent < 0 || bytes_sent == SOCKET_ERROR) {
+        std::stringstream ss;
 #ifdef __unix__
-    if (bytes_sent < 0) {
-        std::stringstream ss;
         ss << "Error sending response: " << strerror(errno);
-    }
-    close(client_socket);
 #else
-    if (bytes_sent == SOCKET_ERROR) {
-        std::stringstream ss;
         ss << "Error sending response: " << WSAGetLastError();
-    }
-    closesocket(client_socket);
 #endif
+    }
+    multiclose(client_socket);
     if (args.api_info.LOGGING) {
         log_request(request, response, args.api_info.LOG_FILE_NAME);
     }

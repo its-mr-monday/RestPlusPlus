@@ -232,9 +232,8 @@ void RestPlus::Start(int port, bool debug = false, bool logging = false) {
     SERVER_SOCKET server_socket = create_server_socket("127.0.0.1", port);
     while (true) {
         try {
-#ifdef __unix__
         //Accept as many connections as possible
-            listen(server_socket.socket, 5);
+            listen(server_socket.socket, SOMAXCONN);
             //Create a socket to hold the connection
             SOCKET client_socket;
             //Create a sockaddr_in object called client_address
@@ -243,41 +242,15 @@ void RestPlus::Start(int port, bool debug = false, bool logging = false) {
             //Create a thread to handle each connection
             while (true) {
                 client_socket = accept(server_socket.socket, (struct sockaddr *) &client_address, &client_length);
-                if (client_socket < 0) {
+                if (client_socket < 0 || client_socket == INVALID_SOCKET) {
                     std::stringstream ss;
                     ss << "Error on accept\n";
+                    multiclose(client_socket);
                     throw RestPlusException(ss.str());
                 }
-                //Create a thread to handle the client
-                //Ensure there are not too many threads
-                
-                threads.push_back(std::thread([this, client_socket, client_address, client_length] {
-                    handle_client_thread(client_socket, client_address, client_length, *this, this->api_info);
-                }));
+                //Add this to the job
+                this->thread_pool.newjob(client_socket, *this, this->api_info);
             }
-#else
-        //Listen for requests
-            listen(server_socket.socket, SOMAXCONN);
-            //Create a socket to hold the connection
-            SOCKET client_socket;
-            //Create a sockaddr_in object called client_address
-            struct sockaddr_in client_address;
-            int client_length = sizeof(client_address);
-            //Create a thread to handle each connection
-            while (true) {
-                client_socket = accept(server_socket.socket, (struct sockaddr *) &client_address, &client_length);
-                if (client_socket == INVALID_SOCKET) {
-                    std::stringstream ss;
-                    ss << "Error on accept\n";
-                    //close client socket and continue
-                    closesocket(client_socket);
-                    continue;
-                }
-                threads.push_back(std::thread([this, client_socket, client_address, client_length] {
-                    handle_client_thread(client_socket, client_address, client_length, *this, this->api_info);
-                }));
-            }
-#endif
         } catch (std::exception& e) {
             //If its a keyboard interrupt we must sigkill
             if (e.what() == "Keyboard Interrupt") {

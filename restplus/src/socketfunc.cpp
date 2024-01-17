@@ -75,3 +75,19 @@ void dispose_server_socket(SERVER_SOCKET server_socket) {
     WSACleanup();
 #endif
 }
+
+void multiclose(SOCKET socket) {
+#ifdef __unix__
+    close(socket);
+#else
+    closesocket(socket);
+#endif
+}
+
+int multiread(SOCKET socket, char* buffer, int buffer_size) {
+#ifdef __unix__
+    return read(socket, buffer, buffer_size);
+#else
+    return recv(socket, buffer, buffer_size, 0);
+#endif
+}
