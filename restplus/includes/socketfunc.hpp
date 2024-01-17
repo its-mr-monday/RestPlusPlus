@@ -7,9 +7,6 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
-#define SOMAXCONN 128
-#define INVALID_SOCKET -1
-#define SOCKET_ERROR -1
 #else
 #include <winsock2.h>
 #include <ws2tcpip.h>
