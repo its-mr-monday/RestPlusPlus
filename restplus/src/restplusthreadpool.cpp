@@ -67,8 +67,7 @@ void thread_func(ThreadArguments args) {
     std::string response_string = response.to_string();
     int bytes_sent = send(client_socket, response_string.c_str(), response_string.length(), 0);
     if (bytes_sent < 0 || bytes_sent == SOCKET_ERROR) {
-        std::stringstream ss;
-        std::cout << "Error sending response: " << std::endl;
+        printerror("Error sending response:\n");
         printlasterror();
     }
     multiclose(client_socket);

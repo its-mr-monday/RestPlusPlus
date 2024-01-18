@@ -12,10 +12,6 @@
 #include "socketfunc.hpp"
 #include <fstream>
 #include <regex>
-#ifdef __unix__
-#include <limits.h>
-#include <sys/stat.h>
-#endif
 
 //Pass values by reference so that they can be modified
 void thread_closer(bool &running, std::vector<std::thread> &threads, int &CURRENT_THREADS) {
@@ -33,18 +29,6 @@ void thread_closer(bool &running, std::vector<std::thread> &threads, int &CURREN
     }
 }
 
-//Simple function that takes in a file path and returns a bool
-bool is_file(std::string file_path) {
-#ifdef __unix__
-    struct stat buf;
-    stat(file_path.c_str(), &buf);
-    return S_ISREG(buf.st_mode);
-#else
-    LPCWSTR path = (LPCWSTR) file_path.c_str();
-    DWORD dwAttrib = GetFileAttributes(path);
-    return (dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
-#endif
-}
 
 std::string get_application_dir() {
 #ifdef __unix__
@@ -352,7 +336,7 @@ HTTPResponse send_file(std::string file_path, HTTPRequest request) {
     if (file_path == "") {
         throw RestPlusException("File path cannot be empty");
     }
-    if (!is_file(file_path)) {
+    if (!is_file(file_path.c_str())) {
         res.setBody("File not found");
         res.setResponseCode(404);
         res.addHeader("Content-Type", "text/plain");

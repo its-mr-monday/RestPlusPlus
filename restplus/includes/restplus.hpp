@@ -67,8 +67,6 @@ class RestPlus {
         HTTPResponse run404(HTTPRequest request);
         
 };
-
-bool is_file(std::string file_path);
 HTTPResponse send_file(std::string file_path, std::string filename, HTTPRequest request);
 HTTPResponse json_res(std::string json, int status_code, HTTPRequest request);
 /*
