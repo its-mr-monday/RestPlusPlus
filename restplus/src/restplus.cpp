@@ -327,6 +327,7 @@ HTTPResponse RestPlus::handle_request(HTTPRequest request) {
             return res;
         }
     } catch (std::exception& e) {
+        printerror(e.what());
         res.setResponseCode(500);
         res.setBody("Internal Server Error");
         res.addHeader("Content-Type", "text/plain");

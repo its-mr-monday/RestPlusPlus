@@ -1,0 +1,26 @@
+/*
+    Copyright 2024 by its-mr-monday.
+    All rights reserved
+    This file is part of the RestPlusPlus Framework, and is released 
+    under the "MIT License Agreement". Please see the LICENSE file that 
+    should have been included as part of this package
+*/
+#include <stdio.h>
+#ifdef __unix__
+#include <unistd.h>
+#include <string.h>
+#include <errno.h>
+#else
+#include <windows.h>
+#endif
+
+//This header file contains multi platform translated syscalls to be used
+//Will reduce the amount of code needed to be written for multi platform support
+
+//Prints the last error to stderr
+//POSIX: Uses strerror(errno) to get last error
+//Windows: Uses WSAGetLastError() to get last error
+void printlasterror();
+
+//Prints a string to stderr
+void printerror(const char * error);

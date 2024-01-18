@@ -6,15 +6,17 @@
     should have been included as part of this package
 */
 
-#pragma once
 #include "syscalls.hpp"
+#include <iostream>
+
+void printlasterror() {
 #ifdef __unix__
-typedef int SOCKET;
-#define SOMAXCONN 128
-#define INVALID_SOCKET -1
-#define SOCKET_ERROR -1
+    std::cerr << strerror(errno) << "\n";
 #else
-//Forward declaration of SOCKET
-//It is defined in winsock2.h imported in socketfunc.hpp
-typedef UINT_PTR SOCKET;
+    std::cerr << WSAGetLastError() << "\n";
 #endif
+}
+
+void printerror(const char * error) {
+    std::cerr << error << "\n";
+}

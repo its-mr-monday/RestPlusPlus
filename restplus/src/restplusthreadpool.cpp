@@ -56,6 +56,7 @@ void thread_func(ThreadArguments args) {
         if (bytes_read < 0 || bytes_read == SOCKET_ERROR) {
             multiclose(client_socket);
             args.thread_routine.HAS_EXITED = true;
+            printerror("Error reading from socket");
             return;
         }
         requeststream << std::string(buffer, bytes_read);
@@ -67,11 +68,8 @@ void thread_func(ThreadArguments args) {
     int bytes_sent = send(client_socket, response_string.c_str(), response_string.length(), 0);
     if (bytes_sent < 0 || bytes_sent == SOCKET_ERROR) {
         std::stringstream ss;
-#ifdef __unix__
-        ss << "Error sending response: " << strerror(errno);
-#else
-        ss << "Error sending response: " << WSAGetLastError();
-#endif
+        std::cout << "Error sending response: " << std::endl;
+        printlasterror();
     }
     multiclose(client_socket);
     if (args.api_info.LOGGING) {
