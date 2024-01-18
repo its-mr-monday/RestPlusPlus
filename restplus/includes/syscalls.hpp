@@ -29,3 +29,6 @@ void printerror(const char * error);
 //Checks if a given path is a file
 //Returns true if it is a file, false if it is not
 bool is_file(const char * path);
+
+//Get the applications ROOT directory
+const char * get_appdir();

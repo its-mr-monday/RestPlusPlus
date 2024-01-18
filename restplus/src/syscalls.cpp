@@ -8,6 +8,7 @@
 
 #include "syscalls.hpp"
 #include <iostream>
+#include <string>
 #ifdef __unix__
 #include <limits.h>
 #include <sys/stat.h>
@@ -34,5 +35,22 @@ bool is_file(const char * path) {
     LPCWSTR fpath = (LPCWSTR) path;
     DWORD dwAttrib = GetFileAttributes(fpath);
     return (dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
+#endif
+}
+
+const char * get_appdir() {
+#ifdef __unix__
+    char result[PATH_MAX];
+    ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);
+    std::string path = std::string(result, (count > 0) ? count : 0);
+    std::size_t found = path.find_last_of("/\\");
+    path.substr(0, found).c_str();
+#else
+    LPWSTR path = new WCHAR[MAX_PATH];
+    GetModuleFileName(NULL, path, MAX_PATH);
+    std::wstring ws(path);
+    std::string str(ws.begin(), ws.end());
+    std::size_t found = str.find_last_of("/\\");
+    return str.substr(0, found).c_str();
 #endif
 }

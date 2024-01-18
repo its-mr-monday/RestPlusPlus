@@ -30,23 +30,6 @@ void thread_closer(bool &running, std::vector<std::thread> &threads, int &CURREN
 }
 
 
-std::string get_application_dir() {
-#ifdef __unix__
-    char result[PATH_MAX];
-    ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);
-    std::string path = std::string(result, (count > 0) ? count : 0);
-    std::size_t found = path.find_last_of("/\\");
-    return path.substr(0, found);
-#else
-    LPWSTR path = new WCHAR[MAX_PATH];
-    GetModuleFileName(NULL, path, MAX_PATH);
-    std::wstring ws(path);
-    std::string str(ws.begin(), ws.end());
-    std::size_t found = str.find_last_of("/\\");
-    return str.substr(0, found);
-#endif
-}
-
 HTTPRequestParams parse_request_params(HTTPRequest request, HTTPRequestParamFields fields) {
     HTTPRequestParams params;
     //remove first / from path
@@ -114,12 +97,19 @@ HTTPRequest parse_request(std::string request) {
 }
 
 void log_request(HTTPRequest request, HTTPResponse response, std::string log_file_path) {
+    const char* app_dir = get_appdir();
+    std::string fpath;
+#ifdef __unix__
+    fpath = std::string(app_dir) + "/" + log_file_path;
+#else
+    fpath = std::string(app_dir) + "\\" + log_file_path;
+#endif
     std::ofstream log_file;
     std::stringstream ss;
     ss << "HTTP" << request.method << " " << request.path << "" << response.response_code;
     ss << "\nBODY\n" << request.body << "\n";
     ss << "\nRESPONSE\n" << response.body << "\n"; 
-    log_file.open(log_file_path, std::ios_base::app);
+    log_file.open(fpath, std::ios_base::app);
     log_file << ss.str() << std::endl;
     ss.clear();
     log_file.close();
