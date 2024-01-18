@@ -13,6 +13,7 @@ SERVER_SOCKET create_server_socket(const char * addr, int port) {
     if (server_socket.socket < 0) {
         std::stringstream ss;
         ss << "Error opening socket\n";
+        std::cerr << ss.str();
         throw RestPlusException(ss.str());
     }
     //Clear the address struct
@@ -29,6 +30,7 @@ SERVER_SOCKET create_server_socket(const char * addr, int port) {
     if (bind(server_socket.socket, (struct sockaddr *) &server_socket.address, sizeof(server_socket.address)) < 0) {
         std::stringstream ss;
         ss << "Error on binding\n";
+        std::cerr << ss.str();
         throw RestPlusException(ss.str());
     }
 
@@ -39,6 +41,7 @@ SERVER_SOCKET create_server_socket(const char * addr, int port) {
     if (iResult != NO_ERROR) {
         std::stringstream ss;
         ss << "Error at WSAStartup()\n";
+        std::cerr << ss.str();
         throw RestPlusException(ss.str());
     }
     //Create a SOCKET object called m_socket.
@@ -47,6 +50,7 @@ SERVER_SOCKET create_server_socket(const char * addr, int port) {
         std::stringstream ss;
         ss << "Error at socket(): " << WSAGetLastError() << "\n";
         WSACleanup();
+        std::cerr << ss.str();
         throw RestPlusException(ss.str());
     }
     //Create a sockaddr_in object called service.
@@ -60,6 +64,7 @@ SERVER_SOCKET create_server_socket(const char * addr, int port) {
         ss << "bind() failed with error: " << WSAGetLastError() << "\n";
         closesocket(server_socket.socket);
         WSACleanup();
+        std::cerr << ss.str();
         throw RestPlusException(ss.str());
     }
     //Return the socket to listen for incoming connections.

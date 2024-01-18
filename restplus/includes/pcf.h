@@ -2,7 +2,7 @@
 #ifdef __unix__
 #include <unistd.h>
 #include <string.h>
-using SOCKET = int;
+typedef int SOCKET;
 #define SOMAXCONN 128
 #define INVALID_SOCKET -1
 #define SOCKET_ERROR -1
