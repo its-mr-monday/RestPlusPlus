@@ -32,3 +32,7 @@ bool is_file(const char * path);
 
 //Get the applications ROOT directory
 const char * get_appdir();
+
+//Join a path with a second path
+//Returns a new path seperated by "/" for POSIX and "\\" for Windows
+const char * path_join(const char * path, const char * path2);

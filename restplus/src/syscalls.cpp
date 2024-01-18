@@ -54,3 +54,17 @@ const char * get_appdir() {
     return str.substr(0, found).c_str();
 #endif
 }
+
+const char * path_join(const char * path, const char * path2) {
+#ifdef __unix__
+    std::string p1 = std::string(path);
+    std::string p2 = std::string(path2);
+    std::string p3 = p1 + "/" + p2;
+    return p3.c_str();
+#else
+    std::string ws1(path);
+    std::string ws2(path2);
+    std::string ws3 = ws1 + "\\" + ws2;
+    return ws3.c_str();
+#endif
+}

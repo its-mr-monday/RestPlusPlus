@@ -98,12 +98,8 @@ HTTPRequest parse_request(std::string request) {
 
 void log_request(HTTPRequest request, HTTPResponse response, std::string log_file_path) {
     const char* app_dir = get_appdir();
-    std::string fpath;
-#ifdef __unix__
-    fpath = std::string(app_dir) + "/" + log_file_path;
-#else
-    fpath = std::string(app_dir) + "\\" + log_file_path;
-#endif
+    const char* fpathPTR = path_join(app_dir, log_file_path.c_str());
+    std::string fpath = std::string(fpathPTR);
     std::ofstream log_file;
     std::stringstream ss;
     ss << "HTTP" << request.method << " " << request.path << "" << response.response_code;
