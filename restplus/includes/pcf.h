@@ -9,6 +9,8 @@
 #pragma once
 #include "syscalls.hpp"
 #ifdef __unix__
+//Defining SOCKET for POSIX
+//It is used to make the code more cross platform
 typedef int SOCKET;
 #define SOMAXCONN 128
 #define INVALID_SOCKET -1

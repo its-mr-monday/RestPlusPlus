@@ -13,22 +13,32 @@
 #include <fstream>
 #include <regex>
 
-//Pass values by reference so that they can be modified
-void thread_closer(bool &running, std::vector<std::thread> &threads, int &CURRENT_THREADS) {
-    while (running) {
-        //Join threads that have finished and reduce current threads
-        CURRENT_THREADS = threads.size();
-        for (int i = 0; i < threads.size(); i++) {
-            if (threads[i].joinable()) {
-                threads[i].join();
-                CURRENT_THREADS--;
-            }
-        }
-        //sleep for 1 second
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-    }
+struct ValidateDynamicRouteResponse {
+    bool is_dynamic;
+    HTTPRequestParamFields fields;
+    HTTPRequestParams params;
+};
+
+bool fits_pattern(std::string route, std::string route_pattern) {
+    //Route could be /home/zack/info
+    //route_pattern could be /home/<name>/info
+    //Another example could be: /api/<version>/get/<id>
+    //And a passed route could be: /api/v1/get/1
+    //Last example: /api/redirect/<url>
+    //Last example: /api/redirect/https%3A%2F%2Fgoogle.com
 }
 
+std::string url_decode(std::string url) {
+
+}
+
+ValidateDynamicRouteResponse validate_and_match(std::string route,
+    std::vector<std::string> dynamic_routes, std::map<std::string, 
+    HTTPRequestParamFields> dynamic_route_fields) {
+    ValidateDynamicRouteResponse response;
+    response.is_dynamic = false;
+
+}
 
 HTTPRequestParams parse_request_params(HTTPRequest request, HTTPRequestParamFields fields) {
     HTTPRequestParams params;
@@ -317,7 +327,7 @@ std::string load_file_data(std::string file_path) {
     return ss.str();
 }
 
-HTTPResponse send_file(std::string file_path, HTTPRequest request) {
+HTTPResponse send_file(std::string file_path, std::string filename) {
     HTTPResponse res;
     if (file_path == "") {
         throw RestPlusException("File path cannot be empty");
@@ -334,14 +344,26 @@ HTTPResponse send_file(std::string file_path, HTTPRequest request) {
     std::string file_data = load_file_data(file_path);
     res.setBody(file_data);
     res.setResponseCode(200);
-    res.addHeader("Content-Type", "text/plain");
+    res.addHeader("Cache-Control", "no-cache");
+    res.addHeader("Content-Disposition", "inline; filename=\"" + filename + "\"");
+    res.addHeader("Content-Type", "application/octet-stream");
     res.addHeader("Access-Control-Allow-Origin", "*");
     res.addHeader("Access-Control-Allow-Headers", "Content-Type");
     res.setVersion("HTTP/1.1");
     return res;
 }
 
-HTTPResponse json_res(std::string json, int status_code, HTTPRequest request) {
+HTTPResponse send_file(std::string file_path, std::string filename, bool as_attachment) {
+    HTTPResponse baseResponse = send_file(file_path, filename);
+    if (!as_attachment) {
+        return baseResponse;
+    }
+    baseResponse.addHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
+
+    return baseResponse;
+}
+
+HTTPResponse json_res(std::string json, int status_code) {
     HTTPResponse res;
     res.setResponseCode(status_code);
     res.setBody(json);
@@ -350,4 +372,32 @@ HTTPResponse json_res(std::string json, int status_code, HTTPRequest request) {
     res.addHeader("Access-Control-Allow-Headers", "Content-Type");
     res.setVersion("HTTP/1.1");
     return res;
+}
+
+HTTPResponse redirect(std::string url, int status_code = 302) {
+    HTTPResponse res;
+    res.setResponseCode(status_code);
+    res.setVersion("HTTP/1.1");
+
+}
+
+void add_cookie(HTTPResponse &response, std::string name, std::string value, int max_age = 0, std::string path = "/", std::string domain = "", bool secure = false, bool http_only = false) {
+    std::stringstream ss;
+    ss << name << "=" << value << ";";
+    if (max_age != 0) {
+        ss << "Max-Age=" << max_age << ";";
+    }
+    if (path != "") {
+        ss << "Path=" << path << ";";
+    }
+    if (domain != "") {
+        ss << "Domain=" << domain << ";";
+    }
+    if (secure) {
+        ss << "Secure;";
+    }
+    if (http_only) {
+        ss << "HttpOnly;";
+    }
+    response.addHeader("Set-Cookie", ss.str());
 }

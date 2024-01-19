@@ -11,32 +11,6 @@
 #include "socketfunc.hpp"
 #include <sstream>
 
-/*
-struct ThreadRoutine {
-    bool RUNNING = false;
-    bool HAS_EXITED = false;
-};
-
-struct ThreadArguments {
-    RestPlus &api;
-    SOCKET client_socket;
-    RestPlusAPIInfo api_info;
-    ThreadRoutine &thread_routine;
-};
-
-struct MasterThreadRoutine {
-    bool &RUNNING;
-    int &MAX_THREADS;
-    int &CURRENT_THREADS;
-    std::vector<std::thread> &threads;
-};
-
-struct Job {
-    ThreadArguments &args;
-    std::thread thread;
-};
-*/
-
 MasterThreadRoutine::MasterThreadRoutine(bool &RUNNING, int &MAX_THREADS, std::vector<Job> &job_queue, std::vector<Job> &running_jobs) : RUNNING(RUNNING), MAX_THREADS(MAX_THREADS), job_queue(job_queue), running_jobs(running_jobs) {};
 
 void thread_sleep(int milliseconds) {
