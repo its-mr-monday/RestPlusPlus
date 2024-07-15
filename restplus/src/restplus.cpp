@@ -380,3 +380,15 @@ HTTPResponse json_res(std::string json, int status_code, HTTPRequest request) {
     res.setVersion("HTTP/1.1");
     return res;
 }
+
+HTTPResponse json_res(restjson json, int status_code, HTTPRequest request) {
+    HTTPResponse res;
+    res.setResponseCode(status_code);
+    std::string json_str = json.dump();
+    res.setBody(json_str);
+    res.addHeader("Content-Type", "application/json");
+    res.addHeader("Access-Control-Allow-Origin", "*");
+    res.addHeader("Access-Control-Allow-Headers", "Content-Type");
+    res.setVersion("HTTP/1.1");
+    return res;
+}

@@ -21,3 +21,6 @@ typedef int SOCKET;
 //It is defined in winsock2.h imported in socketfunc.hpp
 typedef UINT_PTR SOCKET;
 #endif
+#include "nlohmann/json.hpp"
+//Define json as nlohmann::json
+using restjson = nlohmann::json;

@@ -87,6 +87,7 @@ class RestPlus {
 bool is_file(std::string file_path);
 HTTPResponse send_file(std::string file_path, std::string filename, HTTPRequest request);
 HTTPResponse json_res(std::string json, int status_code, HTTPRequest request);
+HTTPResponse json_res(restjson json, int status_code, HTTPRequest request);
 /*
 For any given request we will store one function
 

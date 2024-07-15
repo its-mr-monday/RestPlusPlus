@@ -94,6 +94,9 @@ struct HTTPResponse {
     }
     void setBody(std::string body) {
         this->body = body;
+        int content_length = body.length();
+        //Add the content length header
+        this->addHeader("Content-Length", std::to_string(content_length));
     }
     void setResponseCode(int response_code) {
         this->response_code = response_code;
