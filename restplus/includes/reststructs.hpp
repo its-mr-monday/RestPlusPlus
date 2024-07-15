@@ -5,7 +5,9 @@
     under the "MIT License Agreement". Please see the LICENSE file that 
     should have been included as part of this package
 */
-
+#ifndef RESTSTRUCTS_HPP
+#define RESTSTRUCTS_HPP
+#pragma once
 #include <string>
 #include <map>
 
@@ -101,3 +103,4 @@ struct HTTPResponse {
     }
     std::string to_string();
 };
+#endif

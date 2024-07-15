@@ -5,7 +5,8 @@
     under the "MIT License Agreement". Please see the LICENSE file that 
     should have been included as part of this package
 */
-
+#ifndef RESTPLUS_HPP
+#define RESTPLUS_HPP
 #pragma once
 #include "reststructs.hpp"
 #include "restplusexception.hpp"
@@ -75,3 +76,4 @@ HTTPResponse json_res(std::string json, int status_code, HTTPRequest request);
 For any given request we will store one function
 
 */
+#endif

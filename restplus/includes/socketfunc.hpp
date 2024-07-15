@@ -9,7 +9,7 @@
 //Defines sockets functions for posix and Windows
 #pragma once
 #include "pcf.h"
-#ifdef __unix__
+#if defined(__unix__) || defined(__linux__) || defined(__APPLE__)
 //POSIX headers
 #include <sys/socket.h>
 #include <netinet/in.h>

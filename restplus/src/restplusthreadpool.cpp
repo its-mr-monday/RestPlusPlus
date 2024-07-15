@@ -67,7 +67,7 @@ void thread_func(ThreadArguments args) {
     int bytes_sent = send(client_socket, response_string.c_str(), response_string.length(), 0);
     if (bytes_sent < 0 || bytes_sent == SOCKET_ERROR) {
         std::stringstream ss;
-#ifdef __unix__
+#if defined(__unix__) || defined(__linux__) || defined(__APPLE__)
         ss << "Error sending response: " << strerror(errno);
 #else
         ss << "Error sending response: " << WSAGetLastError();

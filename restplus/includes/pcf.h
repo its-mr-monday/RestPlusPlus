@@ -7,7 +7,8 @@
 */
 
 #pragma once
-#ifdef __unix__
+//Do a platform check for all POSIX (Linux, MacOS)
+#if defined(__unix__) || defined(__linux__) || defined(__APPLE__)
 #include <unistd.h>
 #include <string.h>
 typedef int SOCKET;

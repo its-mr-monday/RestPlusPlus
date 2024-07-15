@@ -15,7 +15,7 @@
 
 SERVER_SOCKET create_server_socket(const char * addr, int port) {
     SERVER_SOCKET server_socket;
-#ifdef __unix__
+#if defined(__unix__) || defined(__linux__) || defined(__APPLE__)
     //Create a socket for listening for incoming connections.
     server_socket.socket = socket(AF_INET, SOCK_STREAM, 0);
     if (server_socket.socket < 0) {
@@ -81,7 +81,7 @@ SERVER_SOCKET create_server_socket(const char * addr, int port) {
 }
 
 void dispose_server_socket(SERVER_SOCKET server_socket) {
-#ifdef __unix__
+#if defined(__unix__) || defined(__linux__) || defined(__APPLE__)
     close(server_socket.socket);
 #else
     closesocket(server_socket.socket);
@@ -90,7 +90,7 @@ void dispose_server_socket(SERVER_SOCKET server_socket) {
 }
 
 void multiclose(SOCKET socket) {
-#ifdef __unix__
+#if defined(__unix__) || defined(__linux__) || defined(__APPLE__)
     close(socket);
 #else
     closesocket(socket);
@@ -98,7 +98,7 @@ void multiclose(SOCKET socket) {
 }
 
 int multiread(SOCKET socket, char* buffer, int buffer_size) {
-#ifdef __unix__
+#if defined(__unix__) || defined(__linux__) || defined(__APPLE__)
     return read(socket, buffer, buffer_size);
 #else
     return recv(socket, buffer, buffer_size, 0);

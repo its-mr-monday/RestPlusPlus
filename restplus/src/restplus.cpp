@@ -12,7 +12,7 @@
 #include "socketfunc.hpp"
 #include <fstream>
 #include <regex>
-#ifdef __unix__
+#if defined(__unix__) || defined(__linux__) || defined(__APPLE__)
 #include <limits.h>
 #include <sys/stat.h>
 #endif
@@ -35,7 +35,7 @@ void thread_closer(bool &running, std::vector<std::thread> &threads, int &CURREN
 
 //Simple function that takes in a file path and returns a bool
 bool is_file(std::string file_path) {
-#ifdef __unix__
+#if defined(__unix__) || defined(__linux__) || defined(__APPLE__)
     struct stat buf;
     stat(file_path.c_str(), &buf);
     return S_ISREG(buf.st_mode);
@@ -47,7 +47,7 @@ bool is_file(std::string file_path) {
 }
 
 std::string get_application_dir() {
-#ifdef __unix__
+#if defined(__unix__) || defined(__linux__) || defined(__APPLE__)
     char result[PATH_MAX];
     ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);
     std::string path = std::string(result, (count > 0) ? count : 0);

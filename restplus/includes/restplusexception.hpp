@@ -5,7 +5,8 @@
     under the "MIT License Agreement". Please see the LICENSE file that 
     should have been included as part of this package
 */
-
+#ifndef RESTPLUSEXCEPTION_HPP
+#define RESTPLUSEXCEPTION_HPP
 #pragma once
 #include <string>
 
@@ -20,3 +21,4 @@ class RestPlusException : public std::exception {
     private:
         std::string message;
 };
+#endif

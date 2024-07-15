@@ -5,7 +5,8 @@
     under the "MIT License Agreement". Please see the LICENSE file that 
     should have been included as part of this package
 */
-
+#ifndef RESTPLUSTHREADPOOL_HPP
+#define RESTPLUSTHREADPOOL_HPP
 #pragma once
 #include "pcf.h"
 #include <thread>
@@ -75,3 +76,4 @@ class RestPlusThreadPool {
         int MAX_THREADS = 10;
         bool RUNNING = false;
 };
+#endif
