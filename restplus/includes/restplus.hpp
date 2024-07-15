@@ -34,6 +34,21 @@ class RestPlus {
         //Assign a statis route with a single method to a handler function
         //Handler function takes in a HTTPRequest and returns a HTTPResponse
         void On(std::string path, std::string method, HTTPResponse (*handler)(HTTPRequest));
+        //Assign a route to a GET handler function
+        void Post(std::string path, HTTPResponse (*handler)(HTTPRequest));
+        //Assign a route to a POST handler function
+        void Get(std::string path, HTTPResponse (*handler)(HTTPRequest));
+        //Assign a route to a PUT handler function
+        void Put(std::string path, HTTPResponse (*handler)(HTTPRequest));
+        //Assign a route to a DELETE handler function
+        void Delete(std::string path, HTTPResponse (*handler)(HTTPRequest));
+        //Assign a route to a PATCH handler function
+        void Patch(std::string path, HTTPResponse (*handler)(HTTPRequest));
+        //Assign a route to a OPTIONS handler function
+        void Options(std::string path, HTTPResponse (*handler)(HTTPRequest));
+        //Assign a route to a HEAD handler function
+        void Head(std::string path, HTTPResponse (*handler)(HTTPRequest));
+
         //Start the server
         void Start(int port, bool debug = false, bool logging = false);
         //Start the server with default port 5000

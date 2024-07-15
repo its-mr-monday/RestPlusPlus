@@ -7,6 +7,8 @@
 */
 
 //Defines sockets functions for posix and Windows
+#ifndef RESTPLUS_SOCKETFUNC_HPP
+#define RESTPLUS_SOCKETFUNC_HPP
 #pragma once
 #include "pcf.h"
 #if defined(__unix__) || defined(__linux__) || defined(__APPLE__)
@@ -46,3 +48,4 @@ void dispose_server_socket(SERVER_SOCKET server_socket);
 
 //Cross platform function will take in a SOCKET, a buffer, and a buffer size and read from the socket into the buffer
 int multiread(SOCKET socket, char* buffer, int buffer_size);
+#endif
